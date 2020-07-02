@@ -45,7 +45,7 @@ import SettingsForm from './SettingsForm';
 //    and uses this URL to construct an embed URL and inserts this URL into
 //    an iframe.
 //
-function UrlPreviewBlock() {
+function GifBlock() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     useSettingsButton(() => setIsSettingsOpen(!isSettingsOpen));
 
@@ -378,7 +378,7 @@ async function getGifForCellValue(searchTerm) {
 
     const gf = new GiphyFetch('dzx2vNHcuZQVNkWc4RJXxnkUczj0xO5A');
     const gif_url = await gf.search(searchTerm, {sort: 'relevant', limit: 1});
-    return gif_url.data[0].embed_url;
+    return gif_url.data[0]?.embed_url;
 }
 
-initializeBlock(() => <UrlPreviewBlock/>);
+initializeBlock(() => <GifBlock/>);
