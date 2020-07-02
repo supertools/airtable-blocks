@@ -158,87 +158,28 @@ function GifBlock() {
             {isSettingsOpen ? (
                 <SettingsForm setIsSettingsOpen={setIsSettingsOpen}/>
             ) : (
-                <RecordPreviewWithDialog
-                    activeTable={activeTable}
-                    selectedRecordId={selectedRecordId}
-                    selectedFieldId={selectedFieldId}
-                    setIsSettingsOpen={setIsSettingsOpen}
-                />
-            )}
-            {recordActionErrorMessage && (
-                <Dialog onClose={() => setRecordActionErrorMessage('')} maxWidth={400}>
-                    <Dialog.CloseButton/>
-                    <Heading size="small">Can&apos;t preview URL</Heading>
-                    <Text variant="paragraph" marginBottom={0}>
-                        {recordActionErrorMessage}
-                    </Text>
-                </Dialog>
+                <Fragment>
+                    <Box
+                        position="absolute"
+                        top={0}
+                        left={0}
+                        right={0}
+                        bottom={0}
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                        justifyContent="center"
+                    >
+                        <RecordPreview
+                            activeTable={activeTable}
+                            selectedRecordId={selectedRecordId}
+                            selectedFieldId={selectedFieldId}
+                            setIsSettingsOpen={setIsSettingsOpen}
+                        />
+                    </Box>
+                </Fragment>
             )}
         </Box>
-    );
-}
-
-// Shows a preview, or a dialog that displays information about what
-// kind of services (URLs) are supported by this block.
-function RecordPreviewWithDialog({
-                                     activeTable,
-                                     selectedRecordId,
-                                     selectedFieldId,
-                                     setIsSettingsOpen,
-                                 }) {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-    // Close the dialog when the selected record is changed.
-    // The new record might have a preview, so we don't want to hide it behind this dialog.
-    useEffect(() => {
-        setIsDialogOpen(false);
-    }, [selectedRecordId]);
-
-    return (
-        <Fragment>
-            <Box
-                position="absolute"
-                top={0}
-                left={0}
-                right={0}
-                bottom={0}
-                display="flex"
-                flexDirection="column"
-                alignItems="center"
-                justifyContent="center"
-            >
-                <RecordPreview
-                    activeTable={activeTable}
-                    selectedRecordId={selectedRecordId}
-                    selectedFieldId={selectedFieldId}
-                    setIsDialogOpen={setIsDialogOpen}
-                    setIsSettingsOpen={setIsSettingsOpen}
-                />
-            </Box>
-            {isDialogOpen && (
-                <Dialog onClose={() => setIsDialogOpen(false)} maxWidth={400}>
-                    <Dialog.CloseButton/>
-                    <Heading size="small">Supported services</Heading>
-                    <Text marginTop={2}>Previews are supported for these services:</Text>
-                    <Text marginTop={2}>
-                        <Link
-                            href="https://support.airtable.com/hc/en-us/articles/205752117-Creating-a-base-share-link-or-a-view-share-link"
-                            target="_blank"
-                        >
-                            Airtable share links
-                        </Link>
-                        , Figma, SoundCloud, Spotify, Vimeo, YouTube
-                    </Text>
-                    <Link
-                        marginTop={2}
-                        href="https://airtable.com/shrQSwIety6rqfJZX"
-                        target="_blank"
-                    >
-                        Request a new service
-                    </Link>
-                </Dialog>
-            )}
-        </Fragment>
     );
 }
 
@@ -247,7 +188,6 @@ function RecordPreview({
                            activeTable,
                            selectedRecordId,
                            selectedFieldId,
-                           setIsDialogOpen,
                            setIsSettingsOpen,
                        }) {
     const {
@@ -285,13 +225,6 @@ function RecordPreview({
     // RecordPreview may now need to render a preview, or render nothing at all.
     useWatchable(cursor, ['activeTableId', 'activeViewId']);
 
-    // This button is re-used in two states so it's pulled out in a constant here.
-    const viewSupportedURLsButton = (
-        <TextButton size="small" marginTop={3} onClick={() => setIsDialogOpen(true)}>
-            View supported URLs
-        </TextButton>
-    );
-
     if (
         // If there is/was a specified table enforced, but the cursor
         // is not presently in the specified table, display a message to the user.
@@ -326,7 +259,6 @@ function RecordPreview({
         return (
             <Fragment>
                 <Text>Select a cell to see a preview</Text>
-                {viewSupportedURLsButton}
             </Fragment>
         );
     } else {
@@ -339,7 +271,6 @@ function RecordPreview({
             return (
                 <Fragment>
                     <Text>The “{previewField.name}” field is empty</Text>
-                    {viewSupportedURLsButton}
                 </Fragment>
             );
         } else {
@@ -347,7 +278,6 @@ function RecordPreview({
                 return (
                     <Fragment>
                         <Text>No preview</Text>
-                        {viewSupportedURLsButton}
                     </Fragment>
                 );
             }
