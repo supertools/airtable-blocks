@@ -16,6 +16,7 @@ import {
     Text,
     TextButton,
 } from '@airtable/blocks/ui';
+import {GiphyFetch} from '@giphy/js-fetch-api'
 
 import {useSettings} from './settings';
 import SettingsForm from './SettingsForm';
@@ -155,7 +156,7 @@ function UrlPreviewBlock() {
     return (
         <Box>
             {isSettingsOpen ? (
-                <SettingsForm setIsSettingsOpen={setIsSettingsOpen} />
+                <SettingsForm setIsSettingsOpen={setIsSettingsOpen}/>
             ) : (
                 <RecordPreviewWithDialog
                     activeTable={activeTable}
@@ -166,7 +167,7 @@ function UrlPreviewBlock() {
             )}
             {recordActionErrorMessage && (
                 <Dialog onClose={() => setRecordActionErrorMessage('')} maxWidth={400}>
-                    <Dialog.CloseButton />
+                    <Dialog.CloseButton/>
                     <Heading size="small">Can&apos;t preview URL</Heading>
                     <Text variant="paragraph" marginBottom={0}>
                         {recordActionErrorMessage}
@@ -180,11 +181,11 @@ function UrlPreviewBlock() {
 // Shows a preview, or a dialog that displays information about what
 // kind of services (URLs) are supported by this block.
 function RecordPreviewWithDialog({
-    activeTable,
-    selectedRecordId,
-    selectedFieldId,
-    setIsSettingsOpen,
-}) {
+                                     activeTable,
+                                     selectedRecordId,
+                                     selectedFieldId,
+                                     setIsSettingsOpen,
+                                 }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     // Close the dialog when the selected record is changed.
@@ -216,7 +217,7 @@ function RecordPreviewWithDialog({
             </Box>
             {isDialogOpen && (
                 <Dialog onClose={() => setIsDialogOpen(false)} maxWidth={400}>
-                    <Dialog.CloseButton />
+                    <Dialog.CloseButton/>
                     <Heading size="small">Supported services</Heading>
                     <Text marginTop={2}>Previews are supported for these services:</Text>
                     <Text marginTop={2}>
@@ -243,15 +244,29 @@ function RecordPreviewWithDialog({
 
 // Shows a preview, or a message about what the user should do to see a preview.
 function RecordPreview({
-    activeTable,
-    selectedRecordId,
-    selectedFieldId,
-    setIsDialogOpen,
-    setIsSettingsOpen,
-}) {
+                           activeTable,
+                           selectedRecordId,
+                           selectedFieldId,
+                           setIsDialogOpen,
+                           setIsSettingsOpen,
+                       }) {
     const {
         settings: {isEnforced, urlField, urlTable},
     } = useSettings();
+
+    const [gifUrl, setGifUrl] = useState('');
+
+    useEffect(() => {
+        const getUrl = async () => {
+            if (selectedRecord && previewField) {
+                const cellValue = selectedRecord.getCellValueAsString(previewField);
+                setGifUrl(await getGifForCellValue(cellValue));
+            }
+        };
+
+        getUrl();
+
+    }, [selectedRecordId])
 
     const table = (isEnforced && urlTable) || activeTable;
 
@@ -328,131 +343,42 @@ function RecordPreview({
                 </Fragment>
             );
         } else {
-            const previewUrl = getGifForCellValue(cellValue);
-
-            // In this case, the FIELD_NAME field of the currently selected
-            // record either contains no URL, or contains a that cannot be
-            // resolved to a supported preview.
-            if (!previewUrl) {
+            if (!gifUrl) {
                 return (
                     <Fragment>
                         <Text>No preview</Text>
                         {viewSupportedURLsButton}
                     </Fragment>
                 );
-            } else {
-                return (
-                    <iframe
-                        // Using `key=previewUrl` will immediately unmount the
-                        // old iframe when we're switching to a new
-                        // preview. Otherwise, the old iframe would be reused,
-                        // and the old preview would stay onscreen while the new
-                        // one was loading, which would be a confusing user
-                        // experience.
-                        key={previewUrl}
-                        style={{flex: 'auto', width: '100%'}}
-                        src={previewUrl}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
-                );
             }
+            return (
+                <iframe
+                    // Using `key=previewUrl` will immediately unmount the
+                    // old iframe when we're switching to a new
+                    // preview. Otherwise, the old iframe would be reused,
+                    // and the old preview would stay onscreen while the new
+                    // one was loading, which would be a confusing user
+                    // experience.
+                    key={gifUrl}
+                    style={{flex: 'auto', width: '100%'}}
+                    src={gifUrl}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                />
+            );
         }
     }
 }
 
-function getGifForCellValue(url) {
-    if (!url) {
+async function getGifForCellValue(searchTerm) {
+    if (!searchTerm) {
         return null;
     }
 
-
-
-    return null;
+    const gf = new GiphyFetch('dzx2vNHcuZQVNkWc4RJXxnkUczj0xO5A');
+    const gif_url = await gf.search(searchTerm, {sort: 'relevant', limit: 1});
+    return gif_url.data[0].embed_url;
 }
 
-const converters = [
-    function getAirtablePreviewUrl(url) {
-        const match = url.match(/airtable\.com(\/embed)?\/(shr[A-Za-z0-9]{14}.*)/);
-        if (match) {
-            return `https://airtable.com/embed/${match[2]}`;
-        }
-
-        // URL isn't for an Airtable share
-        return null;
-    },
-    function getYoutubePreviewUrl(url) {
-        // Standard youtube urls, e.g. https://www.youtube.com/watch?v=KYz2wyBy3kc
-        let match = url.match(/youtube\.com\/.*v=([\w-]+)(&|$)/);
-
-        if (match) {
-            return `https://www.youtube.com/embed/${match[1]}`;
-        }
-
-        // Shortened youtube urls, e.g. https://youtu.be/KYz2wyBy3kc
-        match = url.match(/youtu\.be\/([\w-]+)(\?|$)/);
-        if (match) {
-            return `https://www.youtube.com/embed/${match[1]}`;
-        }
-
-        // Youtube playlist urls, e.g. youtube.com/playlist?list=KYz2wyBy3kc
-        match = url.match(/youtube\.com\/playlist\?.*list=([\w-]+)(&|$)/);
-        if (match) {
-            return `https://www.youtube.com/embed/videoseries?list=${match[1]}`;
-        }
-
-        // URL isn't for a youtube video
-        return null;
-    },
-    function getVimeoPreviewUrl(url) {
-        const match = url.match(/vimeo\.com\/([\w-]+)(\?|$)/);
-        if (match) {
-            return `https://player.vimeo.com/video/${match[1]}`;
-        }
-
-        // URL isn't for a Vimeo video
-        return null;
-    },
-    function getSpotifyPreviewUrl(url) {
-        // Spotify URLs for song, album, artist, playlist all have similar formats
-        let match = url.match(/spotify\.com\/(track|album|artist|playlist)\/([\w-]+)(\?|$)/);
-        if (match) {
-            return `https://open.spotify.com/embed/${match[1]}/${match[2]}`;
-        }
-
-        // Spotify URLs for podcasts and episodes have a different format
-        match = url.match(/spotify\.com\/(show|episode)\/([\w-]+)(\?|$)/);
-        if (match) {
-            return `https://open.spotify.com/embed-podcast/${match[1]}/${match[2]}`;
-        }
-
-        // URL isn't for Spotify
-        return null;
-    },
-    function getSoundcloudPreviewUrl(url) {
-        // Soundcloud url's don't have a clear format, so just check if they are from soundcloud and try
-        // to embed them.
-        if (url.match(/soundcloud\.com/)) {
-            return `https://w.soundcloud.com/player/?url=${url}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`;
-        }
-
-        // URL isn't for Soundcloud
-        return null;
-    },
-    function getFigmaPreviewUrl(url) {
-        // Figma has a regex they recommend matching against
-        if (
-            url.match(
-                /(https:\/\/([\w.-]+\.)?)?figma.com\/(file|proto)\/([0-9a-zA-Z]{22,128})(?:\/.*)?$/,
-            )
-        ) {
-            return `https://www.figma.com/embed?embed_host=astra&url=${url}`;
-        }
-
-        // URL isn't for Figma
-        return null;
-    },
-];
-
-initializeBlock(() => <UrlPreviewBlock />);
+initializeBlock(() => <UrlPreviewBlock/>);
