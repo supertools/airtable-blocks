@@ -328,7 +328,7 @@ function RecordPreview({
                 </Fragment>
             );
         } else {
-            const previewUrl = getPreviewUrlForCellValue(cellValue);
+            const previewUrl = getGifForCellValue(cellValue);
 
             // In this case, the FIELD_NAME field of the currently selected
             // record either contains no URL, or contains a that cannot be
@@ -362,21 +362,13 @@ function RecordPreview({
     }
 }
 
-function getPreviewUrlForCellValue(url) {
+function getGifForCellValue(url) {
     if (!url) {
         return null;
     }
 
-    // Try to extract the preview URL from the URL using regular expression
-    // based helper functions for each service we support.
-    //
-    for (const converter of converters) {
-        const previewUrl = converter(url);
-        if (previewUrl) {
-            return previewUrl;
-        }
-    }
-    // If no converter is found, return null.
+
+
     return null;
 }
 
